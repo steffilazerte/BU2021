@@ -1,0 +1,95 @@
+---
+title: "Slides and Data"
+---
+
+This workshop consists of 6 modules. I have activities in most modules and mini-assignments in many. 
+
+Answers to the mini-assignments will be available after the workshop :)
+
+## Slides
+
+```{r, include = FALSE}
+hold <- FALSE
+
+after_date <- "2021-01-17"
+after_date <- Sys.Date() >= as.Date(after_date)
+
+library(tidyverse)
+library(glue)
+```
+
+
+```{r getdata, include = FALSE, eval = !hold}
+file.copy("~/Projects/Teaching/R Workshop/Videos/R Workshop - Statistics.mp4",
+          "videos/", overwrite = TRUE)
+
+f <- "data"
+if(dir.exists(dirname(f)) && !dir.exists(f)) dir.create(f)
+   
+# MOVE DATA
+before <- list.files(path = "~/Projects/Teaching/R Workshop/Lessons/data/Upload/", full.names = TRUE)
+file.copy(before, f, overwrite = TRUE)
+
+# MOVE SLIDES
+f <- "slides"
+if(dir.exists(dirname(f)) && !dir.exists(f)) dir.create(f)
+   
+# MOVE BEFORE
+before <- list.files(path = "~/Projects/Teaching/R Workshop/Lessons/Handouts/", full.names = TRUE) %>%
+  str_subset("answers", negate = TRUE)
+file.copy(before, f, overwrite = TRUE)
+
+# MOVE AFTER
+if(after_date){
+  after <- list.files(path = "~/Projects/Teaching/R Workshop/Lessons/Handouts/", full.names = TRUE) %>%
+    str_subset("answers")
+  file.copy(after, f, overwrite = TRUE)
+}
+
+slides <- tibble(file = list.files("./slides", full.names = TRUE),
+                 name = basename(file)) %>%
+  mutate(name = str_remove(name, ".pdf|-print.pdf"),
+         name = str_remove(name, " - answers")) %>%
+  select(name) %>%
+  distinct() %>%
+  arrange(name) %>%
+  mutate(n = as.numeric(factor(name)),
+         answers = n %in% 1:4)
+
+text <- slides %>%
+  group_by(name) %>%
+  summarize(text = str_extract(name[1], glue("{n} [a-zA-Z0-9 ]+$")),
+            text = str_replace(text, "^([0-9]+)", glue("\\1\\.")),
+            name = glue("./slides/{name}"),
+            normal = glue("([normal]({name}.pdf))"),
+            print = glue("([print]({name}-print.pdf))"),
+            answers_text = case_when(!answers ~ glue(""), 
+                                     !after_date ~ glue("(answers)"),
+                                     TRUE ~ glue("([answers]({name} - answers.pdf))")),
+            answers_print = case_when(!answers ~ glue(""),
+                                     !after_date ~ glue("(answers print)"), 
+                                     TRUE ~ glue("([answers print]({name} - answers-print.pdf))"),),
+            .groups = "drop") %>%
+  mutate(text = glue("{text} {normal} {print} {answers_text} {answers_print}")) %>%
+  arrange(text) %>%
+  mutate(text = if_else(str_detect(name, "Basic Statistics"), 
+                        glue("{text} ([video module](./videos/R Workshop - Statistics.mp4)) [*Not covered in Workshop*]"),
+                        text))
+```
+
+
+```{r, echo = FALSE, message = FALSE, results = "asis", eval = !hold}
+for(n in seq_along(text$text)) cat(text$text[n], "\n\n", sep = "")
+```
+
+## Data
+
+```{r, echo = FALSE, message = FALSE, results = "asis", eval = !hold}
+n <- list.files("data", full.names = TRUE)
+cat(paste0("- [", basename(n), "](",n, ")\n"))
+```
+
+## Feedback
+Please submit to <TeepleH@BrandonU.CA>
+
+- [Feedback form](BU R workshop Feedback 2021.docx)
